@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import pandas as pd
 import jwt
 from fastapi import FastAPI, Header, HTTPException
+import tempfile
 
 import io
 
@@ -49,9 +50,25 @@ async def create_upload_file(file: bytes = File(...), x_token: str = Header(None
     decoded = verify_jwt(x_token)
     if decoded["sub"] != "testuser":
         raise HTTPException(status_code=400, detail="Not authenticated")
-    with open("./downloaded_data.csv", "wb") as f:
-        f.write(file)
-    return {"file_size": len(file)}
+
+        # validate file size
+    if len(file) > 1000000:
+        raise HTTPException(status_code=400, detail="File size exceeded the limit")
+
+        # write the bytes to a temporary file
+    with tempfile.NamedTemporaryFile(delete=False, mode='w+b') as temp:
+        temp.write(file)
+        temp.seek(0)
+        # read the CSV file and check the column names
+        df = pd.read_csv(temp.name)
+        if set(df.columns) != {"partner_name","partner_id","user_id","amount_used"}:
+            raise HTTPException(status_code=400, detail="Invalid column names")
+    
+    ##to write in local storage
+        else:
+            with open("./downloaded_corr_data.csv", "wb") as f:
+                f.write(file)
+    return {"file_size": len(file),"upload_status":True}
 
 @app.get("/download")
 async def create_download_file(x_token: str = Header(None)):
