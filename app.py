@@ -80,7 +80,7 @@ async def create_download_file(x_token: str = Header(None)):
     df = s3.read_csv(bucket='my-bucket', key='path/to/file.csv')
     #Return the Dataframe as a file response
     return FileResponse(df.to_csv(), headers={'Content-Disposition': 'attachment;filename=file.csv'})
-    return FileResponse(path='created_file.csv', headers={'Content-Disposition': 'attachment;filename=file.csv'})
+    # return FileResponse(path='created_file.csv', headers={'Content-Disposition': 'attachment;filename=file.csv'})
 
 @app.get("/")
 async def read_root():
