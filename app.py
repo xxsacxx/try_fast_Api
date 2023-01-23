@@ -7,7 +7,7 @@ import pandas as pd
 import jwt
 from fastapi import FastAPI, Header, HTTPException
 import tempfile
-
+from awswrangler import S3
 import io
 
 
@@ -75,9 +75,11 @@ async def create_download_file(x_token: str = Header(None)):
     decoded = verify_jwt(x_token)
     if decoded["sub"] != "testuser":
         raise HTTPException(status_code=400, detail="Not authenticated")
-    data = {'partner_name': ['uber'], 'partner_id': ['1234'], 'user_id': ['2234'], 'amount_used': [10000]}
-    df = pd.DataFrame(data)
-    df.to_csv('created_file.csv', index=False)
+        # Read CSV file from S3 bucket
+    s3 = S3()
+    df = s3.read_csv(bucket='my-bucket', key='path/to/file.csv')
+    #Return the Dataframe as a file response
+    return FileResponse(df.to_csv(), headers={'Content-Disposition': 'attachment;filename=file.csv'})
     return FileResponse(path='created_file.csv', headers={'Content-Disposition': 'attachment;filename=file.csv'})
 
 @app.get("/")
