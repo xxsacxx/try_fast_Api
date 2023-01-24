@@ -7,13 +7,14 @@ import pandas as pd
 import jwt
 from fastapi import FastAPI, Header, HTTPException
 import tempfile
-from awswrangler import S3
+# from awswrangler import S3
 import io
 
 
 app = FastAPI()
 
 security = HTTPBasic()
+
 
 SECRET_KEY = "mysecretkey"
 
@@ -76,13 +77,35 @@ async def create_download_file(x_token: str = Header(None)):
     if decoded["sub"] != "testuser":
         raise HTTPException(status_code=400, detail="Not authenticated")
         # Read CSV file from S3 bucket
-    s3 = S3()
-    df = s3.read_csv(bucket='my-bucket', key='path/to/file.csv')
-    #Return the Dataframe as a file response
-    return FileResponse(df.to_csv(), headers={'Content-Disposition': 'attachment;filename=file.csv'})
+    # s3 = S3()
+    # df = s3.read_csv(bucket='my-bucket', key='path/to/file.csv')
+    # #Return the Dataframe as a file response
+    # return FileResponse(df.to_csv(), headers={'Content-Disposition': 'attachment;filename=file.csv'})
     # return FileResponse(path='created_file.csv', headers={'Content-Disposition': 'attachment;filename=file.csv'})
 
 @app.get("/")
 async def read_root():
     return {"Hello": "World"}
+
+import sqlite3
+
+def add_partner_details(partner_name: str, fnf: str, max_credit_limit: int):
+    conn = sqlite3.connect('partners.db')
+    c = conn.cursor()
+    c.execute("""
+CREATE TABLE IF NOT EXISTS partners (
+    partner_name TEXT, 
+    fnf TEXT, 
+    max_credit_limit INTEGER
+)""")
+    c.execute("INSERT INTO partners (partner_name, fnf, max_credit_limit) VALUES (?,?,?)", (partner_name, fnf, max_credit_limit))
+    conn.commit()
+    conn.close()
+@app.post("/partner-details")
+async def add_partner_details_api(partner_name: str, fnf: str, max_credit_limit: int, x_token: str = Header(None)):
+    decoded = verify_jwt(x_token)
+    if decoded["sub"] != "testuser":
+        raise HTTPException(status_code=400, detail="Not authenticated")
+    add_partner_details(partner_name, fnf, max_credit_limit)
+    return {"message": "Partner details added successfully"}
 
